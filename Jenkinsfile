@@ -1,13 +1,13 @@
 pipeline {
-    agent { label 'docker-enabled' }  // Use a specific agent with Docker
+    agent any
 
     environment {
-        DOCKER_IMAGE = 'devops-web:v1'
-        DOCKER_CONTAINER = 'devops-web'
+        IMAGE_NAME = "devops-web:v1"
+        CONTAINER_NAME = "devops-web"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/vanshchoudhary108/devops-enterprise-project.git'
@@ -16,41 +16,18 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Add try-catch for debugging
-                    try {
-                        sh 'docker build -t $DOCKER_IMAGE -f docker/Dockerfile .'
-                    } catch (Exception e) {
-                        echo "Build failed: ${e.message}"
-                        throw e
-                    }
-                }
+                sh 'docker build -t $IMAGE_NAME -f docker/Dockerfile .'
             }
         }
 
-        stage('Deploy Container') {
+        stage('Run Container') {
             steps {
-                script {
-                    try {
-                        sh '''
-                        docker rm -f $DOCKER_CONTAINER || true
-                        docker run -d -p 8081:80 --name $DOCKER_CONTAINER $DOCKER_IMAGE
-                        '''
-                        // Optional: Verify deployment
-                        sh 'docker ps | grep $DOCKER_CONTAINER'
-                    } catch (Exception e) {
-                        echo "Deploy failed: ${e.message}"
-                        throw e
-                    }
-                }
+                sh '''
+                docker rm -f $CONTAINER_NAME || true
+                docker run -d -p 8081:80 --name $CONTAINER_NAME $IMAGE_NAME
+                '''
             }
-        }
-    }
-
-    post {
-        always {
-            // Cleanup: Stop and remove container on failure
-            sh 'docker rm -f $DOCKER_CONTAINER || true'
         }
     }
 }
+
