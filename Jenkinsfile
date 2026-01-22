@@ -7,25 +7,25 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/vanshchoudhary108/devops-enterprise-project.git'
+                checkout scm
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t %DOCKER_IMAGE% -f docker\\Dockerfile .'
+                sh '''
+                  docker build -t devops-web:v1 -f docker/Dockerfile .
+                '''
             }
         }
 
         stage('Run Container') {
             steps {
-                bat '''
-                docker rm -f %DOCKER_CONTAINER% || exit 0
-                docker run -d -p 8081:80 --name %DOCKER_CONTAINER% %DOCKER_IMAGE%
+                sh '''
+                  docker rm -f devops-web || true
+                  docker run -d -p 8081:80 --name devops-web devops-web:v1
                 '''
             }
         }
