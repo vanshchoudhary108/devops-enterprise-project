@@ -2,32 +2,57 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "devops-web:v1"
-        DOCKER_CONTAINER = "devops-web"
+        IMAGE_NAME = "devops-demo-app"
+        CONTAINER_NAME = "devops-demo-container"
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
+        stage('Docker Version Check') {
+            steps {
+                bat 'docker --version'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                sh '''
-                  docker build -t devops-web:v1 -f docker/Dockerfile .
+                bat 'docker build -t %IMAGE_NAME% .'
+            }
+        }
+
+        stage('Stop Old Container (if exists)') {
+            steps {
+                bat '''
+                docker stop %CONTAINER_NAME% || echo Container not running
+                docker rm %CONTAINER_NAME% || echo Container not found
                 '''
             }
         }
 
-        stage('Run Container') {
+        stage('Run Docker Container') {
             steps {
-                sh '''
-                  docker rm -f devops-web || true
-                  docker run -d -p 8081:80 --name devops-web devops-web:v1
+                bat '''
+                docker run -d ^
+                --name %CONTAINER_NAME% ^
+                -p 3000:3000 ^
+                %IMAGE_NAME%
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build & Deployment Successful!'
+        }
+        failure {
+            echo '❌ Build Failed! Check logs.'
         }
     }
 }
